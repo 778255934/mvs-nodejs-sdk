@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tencentyun/video-nodejs-sdk.git"
+    "url": "git+https://github.com/tencentyun/uvs-nodejs-sdk.git"
   },
   "keywords": [
     "qcloud"
@@ -16,9 +16,9 @@
   "author": "tencentyun",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tencentyun/video-nodejs-sdk/issues"
+    "url": "https://github.com/tencentyun/uvs-nodejs-sdk/issues"
   },
-  "homepage": "https://github.com/tencentyun/video-nodejs-sdk#readme",
+  "homepage": "https://github.com/tencentyun/uvs-nodejs-sdk#readme",
   "engines": [
     "node >= 0.4.7"
   ],
