@@ -1,4 +1,5 @@
 var http = require('http');
+var https = require('https');
 var urlM = require('url');
 var fs = require('fs');
 var crypto = require('crypto');
@@ -10,7 +11,11 @@ var VIDEO_PARAMS_ERROR = -1;
 var VIDEO_NETWORK_ERROR = -2;
 
 function buildRequest(options, callback) {
-	var req = http.request(options,
+	var net = http;
+	if (options['protocol'] == "https:") {
+		net = https;
+	}
+	var req = net.request(options,
 		function (res) {
 			var body = "";
 			res.on('data', function (data) { body += data; })
@@ -117,8 +122,9 @@ function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, c
 				headers['User-Agent'] = conf.USER_AGENT();
 
 				var options = {
+					protocol: urlInfo.protocol,
 					hostname: urlInfo.hostname,
-					port: urlInfo.port || 80,
+					port: urlInfo.port,
 					path: urlInfo.path,
 					method: 'POST',
 					headers: headers
@@ -265,8 +271,9 @@ function upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magicco
 				headers['User-Agent'] = conf.USER_AGENT();
 
 				var options = {
+					protocol: urlInfo.protocol,
 					hostname: urlInfo.hostname,
-	  				port: urlInfo.port || 80,
+	  				port: urlInfo.port,
 	  				path: urlInfo.path,
 	  				method: 'POST',
 	  				headers: headers
@@ -297,8 +304,9 @@ function upload_data(bucket, dstpath, filePath, offset, length, session, callbac
 	headers['User-Agent'] = conf.USER_AGENT();
 
 	var options = {
+		protocol: urlInfo.protocol,
 		hostname: urlInfo.hostname,
-		port: urlInfo.port || 80,
+		port: urlInfo.port,
 		path: urlInfo.path,
 		method: 'POST',
 		headers: headers
@@ -354,8 +362,9 @@ function stat(bucket, path, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
+			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	 		port: urlInfo.port || 80,
+	 		port: urlInfo.port,
 	  		path: urlInfo.path+'?op=stat',
 	  		method: 'GET',
 	  		headers: headers
@@ -421,8 +430,9 @@ function del(bucket, path, callback) {
 
 
 		var options = {
+			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port || 80,
+	  		port: urlInfo.port,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
@@ -518,8 +528,9 @@ function update(bucket, path, title, desc, bizattr, flag, callback) {
 		headers['Content-Length'] = data.length;
 
 		var options = {
+			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port || 80,
+	  		port: urlInfo.port,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
@@ -622,8 +633,9 @@ function listFiles(bucket, path, num, pattern, order, context, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
+			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	 		port: urlInfo.port || 80,
+	 		port: urlInfo.port,
 	  		path: urlInfo.path+'?op=list&num='+num+'&pattern='+pattern+'&order='+order+'&context='+context,
 	  		method: 'GET',
 	  		headers: headers
@@ -672,8 +684,9 @@ function createFolder(bucket, path, bizattr, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
+			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port || 80,
+	  		port: urlInfo.port,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
