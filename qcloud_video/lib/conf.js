@@ -17,7 +17,7 @@ exports.EXPIRED_SECONDS = 60;
 
 exports.recvTimeout = 30000;
 exports.USER_AGENT = ua;
-exports.API_VIDEO_END_POINT = 'http://web.file.myqcloud.com/files/v1/';
+exports.API_VIDEO_END_POINT = 'http://web.video.myqcloud.com/files/v1/';
 
 exports.eMaskBizAttr = 1 << 0;
 exports.eMaskTitle = 1 << 1;
