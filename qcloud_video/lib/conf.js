@@ -22,7 +22,8 @@ exports.API_VIDEO_END_POINT = 'http://web.video.myqcloud.com/files/v1/';
 exports.eMaskBizAttr = 1 << 0;
 exports.eMaskTitle = 1 << 1;
 exports.eMaskDesc = 1 << 2;
-exports.eMaskAll = module.exports.eMaskBizAttr | module.exports.eMaskTitle | module.exports.eMaskDesc;
+exports.eMaskVideoCover = 1 << 3;
+exports.eMaskAll = module.exports.eMaskBizAttr | module.exports.eMaskTitle | module.exports.eMaskDesc | module.exports.eMaskVideoCover;
 // timeout单位秒
 exports.setAppInfo = function(appid, secretId, secretKey, timeout) {
     timeout = timeout || 30;

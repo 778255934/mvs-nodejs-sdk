@@ -1,5 +1,4 @@
 var http = require('http');
-var https = require('https');
 var urlM = require('url');
 var fs = require('fs');
 var crypto = require('crypto');
@@ -11,11 +10,7 @@ var VIDEO_PARAMS_ERROR = -1;
 var VIDEO_NETWORK_ERROR = -2;
 
 function buildRequest(options, callback) {
-	var net = http;
-	if (options['protocol'] == "https:") {
-		net = https;
-	}
-	var req = net.request(options,
+	var req = http.request(options,
 		function (res) {
 			var body = "";
 			res.on('data', function (data) { body += data; })
@@ -64,9 +59,12 @@ function buildRequest(options, callback) {
  * @param  {Function} callback     用户上传完毕后执行的回调函数，可选，默认输出日志 格式为 function (ret) {}
  *                                 入参为ret：{'httpcode':200,'code':0,'message':'ok','data':{...}}
  */
-function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, callback) {
+function upload(filePath, bucket, dstpath, videocover, bizattr, title, desc, magiccontext, callback) {
 
-	if (typeof bizattr === 'function') {
+	if (typeof videocover === 'function') {
+		callback = videocover;
+		videocover = null;
+	} else if (typeof bizattr === 'function') {
 		callback = bizattr;
 		bizattr = null;
 	} else if (typeof title === 'function') {
@@ -86,8 +84,6 @@ function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, c
 	if (isExists && typeof callback === 'function') {
 		bucket = bucket.strip();
 		dstpath = encodeURIComponent(dstpath.strip()).replace('%2F','/');
-		var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
-		var sign  = auth.signMore(bucket, expired);
 		var url = generateResUrl(bucket, dstpath);
 		var urlInfo = urlM.parse(url);
 
@@ -104,6 +100,9 @@ function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, c
 				var stats = fs.statSync(filePath);
 				var fileSizeInBytes = stats["size"];
 				form.file('filecontent', filePath, fileSizeInBytes);
+				if (videocover != null) {
+					form.field('video_cover', videocover.toString());
+				}
 				if (bizattr != null) {
 					form.field('biz_attr', bizattr.toString());
 				}
@@ -117,14 +116,15 @@ function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, c
 					form.field('magiccontext', magiccontext.toString());
 				}
 
+				var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
+				var sign  = auth.signMore(bucket, expired);
 				var headers = form.headers();
 				headers['Authorization'] = sign;
 				headers['User-Agent'] = conf.USER_AGENT();
 
 				var options = {
-					protocol: urlInfo.protocol,
 					hostname: urlInfo.hostname,
-					port: urlInfo.port,
+					port: urlInfo.port || 80,
 					path: urlInfo.path,
 					method: 'POST',
 					headers: headers
@@ -154,11 +154,14 @@ function upload(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, c
  * @param  {Function} callback     用户上传完毕后执行的回调函数，可选，默认输出日志 格式为 function (ret) {}
  *                                 入参为ret：{'httpcode':200,'code':0,'message':'ok','data':{...}}
  */
-function upload_slice(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, slice_size, session, callback) {
+function upload_slice(filePath, bucket, dstpath, videocover, bizattr, title, desc, magiccontext, slice_size, session, callback) {
 
 	bucket = bucket.strip();
 	dstpath = encodeURIComponent(dstpath.strip()).replace('%2F','/');
-	if (typeof bizattr === 'function') {
+	if (typeof videocover === 'function') {
+		callback = videocover;
+		videocover = null;
+	} else if (typeof bizattr === 'function') {
 		callback = bizattr;
 		bizattr = null;
 	} else if (typeof title === 'function') {
@@ -180,7 +183,7 @@ function upload_slice(filePath, bucket, dstpath, bizattr, title, desc, magiccont
 		callback = callback || function(ret){ console.log(ret); };
 	}
 
-	upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, slice_size, session, function (rsp){
+	upload_prepare(filePath, bucket, dstpath, videocover, bizattr, title, desc, magiccontext, slice_size, session, function (rsp){
 		if (rsp['httpcode'] != 200 || rsp['code'] != 0) {
 			return callback(rsp);
 		}
@@ -226,11 +229,9 @@ function upload_slice(filePath, bucket, dstpath, bizattr, title, desc, magiccont
 	});
 }
 
-function upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magiccontext, slice_size, session, callback) {
+function upload_prepare(filePath, bucket, dstpath, videocover, bizattr, title, desc, magiccontext, slice_size, session, callback) {
 	var isExists = fs.existsSync(filePath);
 	if (isExists && typeof callback === 'function') {
-		var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
-		var sign  = auth.signMore(bucket, expired);
 		var url = generateResUrl(bucket, dstpath);
 		var urlInfo = urlM.parse(url);
 
@@ -247,6 +248,9 @@ function upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magicco
 				var fileSizeInBytes = stats["size"];
 				form.field('filesize', fileSizeInBytes.toString());
 
+				if (videocover != null) {
+					form.field('video_cover', videocover.toString());
+				}
 				if (bizattr != null) {
 					form.field('biz_attr', bizattr.toString());
 				}
@@ -266,14 +270,15 @@ function upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magicco
 					form.field('session', session.toString());
 				}
 
+				var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
+				var sign  = auth.signMore(bucket, expired);
 				var headers = form.headers();
 				headers['Authorization'] = sign;
 				headers['User-Agent'] = conf.USER_AGENT();
 
 				var options = {
-					protocol: urlInfo.protocol,
 					hostname: urlInfo.hostname,
-	  				port: urlInfo.port,
+	  				port: urlInfo.port || 80,
 	  				path: urlInfo.path,
 	  				method: 'POST',
 	  				headers: headers
@@ -288,8 +293,6 @@ function upload_prepare(filePath, bucket, dstpath, bizattr, title, desc, magicco
 	}
 }
 function upload_data(bucket, dstpath, filePath, offset, length, session, callback) {
-	var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
-	var sign  = auth.signMore(bucket, expired);
 	var url = generateResUrl(bucket, dstpath);
 	var urlInfo = urlM.parse(url);
 	var form = formstream()
@@ -299,14 +302,15 @@ function upload_data(bucket, dstpath, filePath, offset, length, session, callbac
 	var fstream = fs.createReadStream(filePath, {start:offset, end:offset+length-1});
 	form.stream('filecontent', fstream, filePath, length);
 
+	var expired = parseInt(Date.now() / 1000) + conf.EXPIRED_SECONDS;
+	var sign  = auth.signMore(bucket, expired);
 	var headers = form.headers();
 	headers['Authorization'] = sign;
 	headers['User-Agent'] = conf.USER_AGENT();
 
 	var options = {
-		protocol: urlInfo.protocol,
 		hostname: urlInfo.hostname,
-		port: urlInfo.port,
+		port: urlInfo.port || 80,
 		path: urlInfo.path,
 		method: 'POST',
 		headers: headers
@@ -362,9 +366,8 @@ function stat(bucket, path, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
-			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	 		port: urlInfo.port,
+	 		port: urlInfo.port || 80,
 	  		path: urlInfo.path+'?op=stat',
 	  		method: 'GET',
 	  		headers: headers
@@ -430,9 +433,8 @@ function del(bucket, path, callback) {
 
 
 		var options = {
-			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port,
+	  		port: urlInfo.port || 80,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
@@ -457,7 +459,7 @@ function del(bucket, path, callback) {
  * @param  {Function} callback     完毕后执行的回调函数，可选，默认输出日志 格式为 function (ret) {}
  *                                 入参为ret：{'httpcode':200,'code':0,'message':'ok','data':{...}}
  */
-function updateFile(bucket, path, title, desc, bizattr, callback) {
+function updateFile(bucket, path, title, desc, bizattr, videocover, callback) {
 	if (typeof title === 'function') {
 		callback = title;
 		title = null;
@@ -467,18 +469,22 @@ function updateFile(bucket, path, title, desc, bizattr, callback) {
 	} else if (typeof bizattr === 'function') {
 		callback = bizattr;
 		bizattr = null;
+	} else if (typeof videocover === 'function') {
+		callback = videocover;
+		videocover = null;
 	}
 	bucket = bucket.strip();
 	path = encodeURIComponent(path.strip()).replace('%2F','/');
-	if (title && desc && bizattr){
+	if (title && desc && bizattr && videocover){
 		var flag = conf.eMaskAll;
 	} else {
 		if (title != null) { flag |= conf.eMaskTitle; }
 		if (desc != null) { flag |= conf.eMaskDesc; }
 		if (bizattr != null) { flag |= conf.eMaskBizAttr; }
+		if (videocover != null) { flag |= conf.eMaskVideoCover; }
 	}
 
-	update(bucket, path, title, desc, bizattr, flag, callback);
+	update(bucket, path, title, desc, bizattr, videocover, flag, callback);
 }
 /**
  * 更新目录
@@ -490,7 +496,7 @@ function updateFile(bucket, path, title, desc, bizattr, callback) {
 function updateFolder(bucket, path, bizattr, callback) {
 	bucket = bucket.strip();
 	path = encodeURIComponent(path.strip()+'/').replace('%2F','/');
-	update(bucket, path, bizattr, callback);
+	update(bucket, path, null, null, bizattr, null, conf.eMaskBizAttr, callback);
 }
 /**
  * 更新视频
@@ -503,7 +509,7 @@ function updateFolder(bucket, path, bizattr, callback) {
  * @param  {Function} callback     完毕后执行的回调函数，可选，默认输出日志 格式为 function (ret) {}
  *                                 入参为ret：{'httpcode':200,'code':0,'message':'ok','data':{...}}
  */
-function update(bucket, path, title, desc, bizattr, flag, callback) {
+function update(bucket, path, title, desc, bizattr, videocover, flag, callback) {
 
 	bizattr = bizattr || '';
 	callback = callback || function(ret){console.log(ret)};
@@ -518,6 +524,7 @@ function update(bucket, path, title, desc, bizattr, flag, callback) {
 		if (bizattr != null) { jsonObj['biz_attr'] = bizattr.toString(); }
 		if (title != null)   { jsonObj['video_title'] = title.toString(); }
 		if (desc != null)    { jsonObj['video_desc'] = desc.toString(); }
+		if (videocover != null)    { jsonObj['video_cover'] = videocover.toString(); }
 		if (flag != null)    { jsonObj['flag'] = flag.toString(); }
 		var data = JSON.stringify(jsonObj);
 
@@ -528,9 +535,8 @@ function update(bucket, path, title, desc, bizattr, flag, callback) {
 		headers['Content-Length'] = data.length;
 
 		var options = {
-			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port,
+	  		port: urlInfo.port || 80,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
@@ -633,9 +639,8 @@ function listFiles(bucket, path, num, pattern, order, context, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
-			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	 		port: urlInfo.port,
+	 		port: urlInfo.port || 80,
 	  		path: urlInfo.path+'?op=list&num='+num+'&pattern='+pattern+'&order='+order+'&context='+context,
 	  		method: 'GET',
 	  		headers: headers
@@ -684,9 +689,8 @@ function createFolder(bucket, path, bizattr, callback) {
 		headers['User-Agent'] = conf.USER_AGENT();
 
 		var options = {
-			protocol: urlInfo.protocol,
 			hostname: urlInfo.hostname,
-	  		port: urlInfo.port,
+	  		port: urlInfo.port || 80,
 	  		path: urlInfo.path,
 	  		method: 'POST',
 	  		headers: headers
