@@ -329,7 +329,7 @@ function upload_data(bucket, dstpath, filePath, offset, length, session, callbac
  *                                 入参为ret：{'httpcode':200,'code':0,'message':'ok','data':{...}}
  */
 function statFile(bucket, path, callback) {
-	bucket = bucket.strip();
+	bucket = bucket.strip();	
 	path = encodeURIComponent(path.strip()).replace('%2F','/');
 	stat(bucket, path, callback);
 }
@@ -391,6 +391,8 @@ function stat(bucket, path, callback) {
  */
 function deleteFile(bucket, path, callback) {
 	bucket = bucket.strip();
+	//这段代码回导致抛出异常 -63
+	//应该为	path = encodeURIComponent(path.strip()).replace(/%2F/g,'/');
 	path = encodeURIComponent(path.strip()).replace('%2F','/');
 	del(bucket, path, callback);
 }
